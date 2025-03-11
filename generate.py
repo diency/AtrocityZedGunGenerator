@@ -430,20 +430,64 @@ class Gun:
         for i in range(self.fireRate):
             self.shoot(enemy_distance)
 
+class Item:
+    def __init__(self, zp_arg):
+        # commented out items are cool ideas but a pain to implement in current system bc youd have to make a command
+        # to edit gun stats
+        all_items = [
+            ('french fries - heals entire team 3 hp', 3),
+            # laser sight - weapon gains +2 range or +1 max range if SG
+            ('molotov - can be thrown anywhere line of sight, explodes size 2 for 10 fire dmg', 9),
+            ('thermal goggles - all guns gain homing, piercing, and +3 range for one turn', 9),
+            ('helmet - can be discarded to prevent one singular instance of damage', 12),
+            ('minifridge - one player can use any gun in their inventory for the rest of the round', 12),
+            ('burger - heals 5 hp', 15),
+            ('adrenaline - all players take no damage and gain double move speed for one turn', 18),
+            ('deluxe meal - heal everyone to full hp', 24),
+            # ('extended mag - one weapon with a fire rate of 4 or higher gains one additional fire rate for the rest of the round', 30),
+            ('guns akimbo - all players gain a second gun action this turn', 30),
+            ('time warp - on use, all enemies are teleported back to their spawn points. Can be used twice', 36),
+            ('soulsurge - give one weapon [SOUL EATER] for the rest of the round', 42),
+            ('devils touch - all damage from all players is converted to FIRE damage for one turn', 60)
+        ]
+
+        # get index of last valid item you can roll
+        index = -1
+        for item in all_items:
+            if item[1] > zp_arg:
+                break
+            index += 1
+
+        if index == -1:
+            raise Exception("no valid items for this zp")
+
+        rand = random.randint(0,index)
+        random_item = all_items[rand]
+
+        self.description = random_item[0]
+        self.gp = random_item[1]
+
+
+
 if __name__ == '__main__':
     gun_test = Gun(10, None)
     gun_test.display()
     gun_test.unload(3)
 
-    # TODO: scanner w commands
-    # there is a gun list saved across commands
-    # generate(num guns, zp), adds to gun list
-    # get stats on gun n from list
-    # dump list (shows all guns on list by calling above function)
-    # get gimmicks on gun n, get tweaks on gun n, etc.
-    # clear gun list
-    # rm gun n
-    # undo deletion?
-    # buy gun - move it to seperate list
-    # roll gun n
-    # same commands on inventory
+    # shop []
+    # inventory []
+
+    # zp (1) - sets zp to (1) for shop/item gen, default value is 3
+    # zpinc (1) - sets zp increment per next shop to (1), default value is 6
+    # clear shop - clears the shop
+    # clear inventory - clears your inventory
+
+    # restock - increases zp by zpinc, then refreshes shop at current zp, then prints shop
+    # reroll - refreshes shop at current zp, then prints shop
+    # browse - prints all guns/items in shop
+    # buy (1) - puts gun/item (1) into your inventory
+
+    # inventory - prints your inventory
+    # shoot (1) (2) (3) - shoot the (1)th gun in your inventory at an enemy (2) spaces away (3) times
+    # unload (1) (2) - shoot all the shots of your (1)th gun at an enemy (2) spaces away
+    # trash (1) - remove gun (1) from your inventory
