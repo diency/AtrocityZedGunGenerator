@@ -258,6 +258,27 @@ def redeem_gimmicks(gun):
 
 def calculate_damage_vars(gun):
     target_dps = gun.dpt / gun.fireRate
+    # TODO: in some cases at low gp, it is possible for a gun to have a dps < 3.5, making no +/* dmg solutions possible
+    # in these cases, we actually want timesDmg to always be 1 and plusDmg to be negative s.t. dps <= 3.5
+    # put case to handle this around here
+    """
+    example case:
+        no valid damage numbers found!
+        ENTRY NUMBER 1
+        Bodacious Smoothborne - SN - $3
+        Fire Rate: 3
+        +3 Range
+        3 / 10.5 / 18
+        --------------
+        ENTRY NUMBER 3
+        Spiky Rifle - SN - $5
+        Fire Rate: 2
+        +4 Range
+        +1 dmg
+        [piercing]
+        4 / 9.0 / 14
+    
+    """
     lower_bound = max(target_dps * 0.85, target_dps - 15)
     upper_bound = min(target_dps * 1.15, target_dps + 15)
     solutions = []
@@ -273,7 +294,7 @@ def calculate_damage_vars(gun):
     if not solutions:
         print('no valid damage numbers found!')
         return
-    number_solutions = len(solutions)
+    number_solutions = len(solutions) - 1
     if number_solutions % 2 == 0:
         # it splits evenly
         solution_index = random.randint(0,int(number_solutions/2)) + random.randint(0,int(number_solutions/2))
@@ -282,7 +303,6 @@ def calculate_damage_vars(gun):
         smol = floor(number_solutions/2)
         beeg = ceil(number_solutions/2)
         solution_index = random.randint(0, smol) + random.randint(0, beeg)
-    # TODO: this is out of bounds sometimes, fix
     solution = solutions[solution_index]
     gun.plusDmg = solution[0]
     gun.timesDmg = solution[1]
@@ -384,10 +404,10 @@ class Gun:
         print(f'gimmicks: {self.gimmicks}')
         print(f'dpt: {self.dpt}, fire rate: {self.fireRate}, range: {self.rangeBonus}')
         print(f'+{self.plusDmg} dmg, x{self.timesDmg} dmg')
-        minDmg = (1 + self.plusDmg) * self.timesDmg * self.fireRate
-        avgDmg = (3.5 + self.plusDmg) * self.timesDmg * self.fireRate
-        maxDmg = (6 + self.plusDmg) * self.timesDmg * self.fireRate
-        print(f'{minDmg} / {avgDmg} / {maxDmg}')
+        min_dmg = (1 + self.plusDmg) * self.timesDmg * self.fireRate
+        avg_dmg = (3.5 + self.plusDmg) * self.timesDmg * self.fireRate
+        max_dmg = (6 + self.plusDmg) * self.timesDmg * self.fireRate
+        print(f'{min_dmg} / {avg_dmg} / {max_dmg}')
         if self.type == 'SG':
             print(f'max range: {self.maxRange}')
         if self.type == 'EX':
@@ -432,7 +452,7 @@ class Gun:
 
 class Item:
     def __init__(self, zp_arg):
-        # commented out items are cool ideas but a pain to implement in current system bc youd have to make a command
+        # commented out items are cool ideas but a pain to implement in current system bc you'd have to make a system
         # to edit gun stats
         all_items = [
             ('french fries - heals entire team 3 hp', 3),
@@ -464,30 +484,128 @@ class Item:
         rand = random.randint(0,index)
         random_item = all_items[rand]
 
-        self.description = random_item[0]
+        self.name = random_item[0]
         self.gp = random_item[1]
 
+    def display(self):
+        print(self.name)
 
+def print_object_list(object_list):
+    if not object_list:
+        print("nothin here...")
+        return
+    num = 1
+    for item in object_list:
+        if num > 1:
+            print("--------------")
+        print(f'ENTRY NUMBER {num}')
+        item.display()
+        num += 1
+
+def generate_shop(zp_arg):
+    new_shop = []
+    # TODO: only generate 2 guns and make sure theyre different types
+    for i in range(3):
+        new_gun = Gun(zp_arg, None)
+        new_shop.append(new_gun)
+
+    new_item = Item(zp_arg)
+    new_shop.append(new_item)
+    return new_shop
 
 if __name__ == '__main__':
-    gun_test = Gun(10, None)
-    gun_test.display()
-    gun_test.unload(3)
 
-    # shop []
-    # inventory []
+    shop = []
+    inventory = []
+    zp = 3
+    zpinc = 6
 
-    # zp (1) - sets zp to (1) for shop/item gen, default value is 3
-    # zpinc (1) - sets zp increment per next shop to (1), default value is 6
-    # clear shop - clears the shop
-    # clear inventory - clears your inventory
+    while True:
+        user_input = input("Enter command - type 'help' for list of commands: ")  # Read user input
+        args = user_input.split()  # Split input into arguments
 
-    # restock - increases zp by zpinc, then refreshes shop at current zp, then prints shop
-    # reroll - refreshes shop at current zp, then prints shop
-    # browse - prints all guns/items in shop
-    # buy (1) - puts gun/item (1) into your inventory
+        if not args:
+            continue  # Skip empty input
 
-    # inventory - prints your inventory
-    # shoot (1) (2) (3) - shoot the (1)th gun in your inventory at an enemy (2) spaces away (3) times
-    # unload (1) (2) - shoot all the shots of your (1)th gun at an enemy (2) spaces away
-    # trash (1) - remove gun (1) from your inventory
+        command = args[0].lower()  # First argument as command
+
+        # TODO: add clear console command (clean command?)
+        # TODO: make inventory look different from shop
+        # TODO: rm ----- from unload and shoot commands
+        
+        print("=====================")
+        match command:
+
+            case "help":
+                print("help - prints this")
+                print("exit - terminates the program (THIS WILL DELETE YOUR STUFF!!)")
+                print("")
+                print("zp (a) - sets zp to (a) for shop/item gen, default value is 3")
+                print("zpinc (a) - sets zp increment per next round to (a), default value is 6")
+                print("clear shop - clears the shop")
+                print("clear inventory - clears your inventory")
+                print("")
+                print("restock - increases zp by zpinc, then refreshes shop at current zp, then prints shop")
+                print("reroll - refreshes shop at current zp, then prints shop")
+                print("browse - prints all guns/items in shop")
+                print("buy (a) - copies gun/item (a) from the shop into your inventory. does not remove item from shop.")
+                print("")
+                print("inventory - prints your inventory")
+                print("shoot (a) (b) (c) - shoot the (a)th gun in your inventory at an enemy (b) spaces away (c) times")
+                print("unload (a) (b) - shoot all the shots of your (a)th gun at an enemy (b) spaces away")
+                print("trash (a) - remove gun (a) from your inventory")
+            case "exit":
+                print("Goodbye!")
+                break
+
+            case "zp":
+                zp = int(args[1])
+                print(f"zp set to {args[1]}")
+            case "zpinc":
+                zpinc = int(args[1])
+                print(f'zp increment set to {args[1]}')
+            case "clear":
+                if args[1] == "shop":
+                    shop = []
+                    print("the shop has been cleared")
+                elif args[1] == "store":
+                    shop = []
+                    print("the shop has been cleared")
+                elif args[1] == "inventory":
+                    inventory = []
+                    print("your inventory has been cleared")
+                else:
+                    print("ERROR: improper usage - you can either clear 'shop' or 'inventory'")
+            case "restock":
+                zp += zpinc
+                print(f"ZP INCREASED TO {zp}")
+                print("--------------")
+                shop = generate_shop(zp)
+                print_object_list(shop)
+            case "reroll":
+                shop = generate_shop(zp)
+                print_object_list(shop)
+            case "browse":
+                print_object_list(shop)
+            case "buy":
+                idx = int(args[1]) - 1
+                inventory.append(shop[idx])
+                print(f"purchased: {shop[idx].name}")
+            case "inventory":
+                print_object_list(inventory)
+            case "shoot":
+                idx = int(args[1]) - 1
+                distance = int(args[2])
+                shots = int(args[3])
+                inventory[idx].pepper(distance, shots)
+            case "unload":
+                idx = int(args[1]) - 1
+                distance = int(args[2])
+                inventory[idx].unload(distance)
+            case "trash":
+                idx = int(args[1]) - 1
+                print(f'Trashing {inventory[idx].name}')
+                inventory.pop(idx)
+            case _:
+                print("ERROR: unknown command")
+        print("=====================")
