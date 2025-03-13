@@ -258,27 +258,17 @@ def redeem_gimmicks(gun):
 
 def calculate_damage_vars(gun):
     target_dps = gun.dpt / gun.fireRate
-    # TODO: in some cases at low gp, it is possible for a gun to have a dps < 3.5, making no +/* dmg solutions possible
-    # in these cases, we actually want timesDmg to always be 1 and plusDmg to be negative s.t. dps <= 3.5
-    # put case to handle this around here
-    """
-    example case:
-        no valid damage numbers found!
-        ENTRY NUMBER 1
-        Bodacious Smoothborne - SN - $3
-        Fire Rate: 3
-        +3 Range
-        3 / 10.5 / 18
-        --------------
-        ENTRY NUMBER 3
-        Spiky Rifle - SN - $5
-        Fire Rate: 2
-        +4 Range
-        +1 dmg
-        [piercing]
-        4 / 9.0 / 14
-    
-    """
+
+    # in some cases, target dps can be lower than 3.5 (average roll on a die)
+    # for these cases, we actually want NEGATIVE damage, not positive
+    # so we handle this edge case here by setting times damage to 1 and then just subtracting dmg from the roll
+    # until it gets within range
+    if target_dps < 3.5:
+        temp = floor(target_dps - 0.5)
+        diff = temp - 3
+        gun.plusDmg = diff
+        gun.timesDmg = 1
+
     lower_bound = max(target_dps * 0.85, target_dps - 15)
     upper_bound = min(target_dps * 1.15, target_dps + 15)
     solutions = []
@@ -351,8 +341,7 @@ class Gun:
             'nuclear',
             'high fire rate',
             'low fire rate',
-            'big game hunter',
-            ''
+            'big game hunter'
         ]
 
         print (f'{self.name} - {self.type} - ${self.gp}')
@@ -438,14 +427,12 @@ class Gun:
             print(f'Rolled a {roll} - Hit for {final_dmg} Damage!')
 
     def pepper(self, enemy_distance, num_shots):
-        print('------------')
         print(f'Shooting the {self.name} {num_shots} times at an enemy {enemy_distance} spaces away...')
         for i in range(num_shots):
             self.shoot(enemy_distance)
 
     # fires all shots of a gun into one enemy x distance away
     def unload(self, enemy_distance):
-        print('------------')
         print(f'Unloading the {self.name} at an enemy {enemy_distance} spaces away...')
         for i in range(self.fireRate):
             self.shoot(enemy_distance)
@@ -504,13 +491,12 @@ def print_object_list(object_list):
 
 def generate_shop(zp_arg):
     new_shop = []
-    # TODO: only generate 2 guns and make sure theyre different types
-    for i in range(3):
-        new_gun = Gun(zp_arg, None)
-        new_shop.append(new_gun)
-
-    new_item = Item(zp_arg)
-    new_shop.append(new_item)
+    # generates 2 guns of different types and one item
+    types = ["MG", "SG", "SN", "EX"]
+    type1, type2 = random.sample(types, 2)
+    new_shop.append(Gun(zp_arg, type1))
+    new_shop.append(Gun(zp_arg, type2))
+    new_shop.append(Item(zp_arg))
     return new_shop
 
 if __name__ == '__main__':
@@ -529,9 +515,8 @@ if __name__ == '__main__':
 
         command = args[0].lower()  # First argument as command
 
-        # TODO: add clear console command (clean command?)
-        # TODO: make inventory look different from shop
-        # TODO: rm ----- from unload and shoot commands
+        # TODO: clear console command doesnt work in pycharm, figure smth else out (print 100 \n maybe? idk)
+        # TODO: consider making inventory look different from shop?
         
         print("=====================")
         match command:
