@@ -43,7 +43,63 @@ def fill_zombie_deck():
         Zombie('Outcast', 9, 15),
         Zombie('Butcher', 1, 15),
         Zombie('Butcher', 2, 15),
+        # TODO: add 2 of each boss card, but make it so you can never draw them after drawing for the first time
+        """
+        Zombie('BOSS - Nerd', 1, 10),
+        Zombie('BOSS - Nerd', 1, 10),
+        Zombie('BOSS - DJ', 1, 20),
+        Zombie('BOSS - DJ', 1, 20),
+        Zombie('FINAL BOSS - Atrocity', 1, 40),
+        Zombie('FINAL BOSS - Atrocity', 1, 40),
+        """
+
     ]
+
+def refresh(drawp, disp):
+    # note that this does NOT completely reset the draw pile
+    # if there are cards not currently in the discard pile
+    drawp.extend(disp)
+    random.shuffle(drawp)
+    disp.clear()
+
+def zp_draw(drawp, disp, zp):
+    print(f'Drawing {zp} ZP worth of zombies...')
+    zp_spent = 0
+    upper_bound = zp + 5
+    active_zombies = [] # this is to make sure it doesn't duplicate zombies when shuffling mid draw
+
+    # it is theoretically possible for this to get stuck in the while loop, eg zp is 3, and the only card we have in the
+    # draw or discard piles costs 10 - it would continually draw and shuffle this card forever
+    sanity = 10000
+    while zp_spent < zp:
+        sanity -= 1
+        if sanity <= 0:
+            break
+
+        if len(drawp) == 0:
+            refresh(drawp, disp)
+            # drew literally every card!
+            if len(drawp) == 0:
+                break
+        zed = drawp[0]
+        zed_cost = zed.zp_cost
+        if zp_spent + zed_cost > upper_bound:
+            # too expensive!
+            disp.append(zed)
+            drawp.pop(0)
+        else:
+            zp_spent += zed_cost
+            active_zombies.append(zed)
+            drawp.pop(0)
+
+    # sort active cards by name then number, then print
+    active_zombies.sort(key=lambda z: (z.name, z.number))
+    for zombie in active_zombies:
+        print(f'{zombie.name} - {zombie.number}')
+
+    disp.extend(active_zombies)
+
+    return drawp, disp
 
 if __name__ == '__main__':
 
@@ -87,3 +143,26 @@ if __name__ == '__main__':
             case "zpinc":
                 zp_inc = int(args[1])
                 print(f'zp increment set to {args[1]}')
+            case "horde":
+                draw_pile, discard_pile = zp_draw(draw_pile, discard_pile, zp)
+                zp += zp_inc
+            case "summon":
+                draw_pile, discard_pile = zp_draw(draw_pile, discard_pile, zp)
+            case "draw":
+                if len(args) == 1:
+                    draw_amount = 1
+                else:
+                    draw_amount = args[1]
+
+                for i in range(draw_amount):
+                    # shuffle if no cards to draw
+                    if len(draw_pile) == 0:
+                        refresh(draw_pile, discard_pile)
+                    zomb = draw_pile[0]
+                    print(f'{zomb.name} - {zomb.number}')
+                    discard_pile.append(zomb)
+                    draw_pile.pop(0)
+            case "shuffle":
+                print('shuffling discard pile back into draw pile...')
+                refresh(draw_pile, discard_pile)
+        print("=====================")
